@@ -1381,13 +1381,13 @@
       )
     )
     (symbol "Switch:SW_SPDT" (pin_names (offset 0) hide) (in_bom yes) (on_board yes)
-      (property "Reference" "SW" (at 0 4.318 0)
+      (property "Reference" "SW2" (at 0 -7.62 0)
         (effects (font (size 1.27 1.27)))
       )
       (property "Value" "SW_SPDT" (at 0 -5.08 0)
         (effects (font (size 1.27 1.27)))
       )
-      (property "Footprint" "" (at 0 0 0)
+      (property "Footprint" "fish_watch:MSK-12C02" (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
       (property "Datasheet" "~" (at 0 0 0)
@@ -1435,6 +1435,10 @@
         (pin passive line (at 5.08 -2.54 180) (length 2.54)
           (name "C" (effects (font (size 1.27 1.27))))
           (number "3" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 5.715 270) (length 2.54)
+          (name "Shield" (effects (font (size 1.27 1.27))))
+          (number "S" (effects (font (size 1.27 1.27))))
         )
       )
     )
@@ -2903,6 +2907,10 @@
     (stroke (width 0) (type default))
     (uuid c2d3a59a-2943-4e2e-b3b3-30994a906afe)
   )
+  (wire (pts (xy 59.69 193.675) (xy 59.69 194.31))
+    (stroke (width 0) (type default))
+    (uuid c395e874-3c9d-4900-8654-da4dc8c61c69)
+  )
   (wire (pts (xy 64.77 124.46) (xy 64.77 128.27))
     (stroke (width 0) (type default))
     (uuid c766ebc0-fd84-4074-9479-1288efbcdb8c)
@@ -3765,6 +3773,36 @@
       (project "Christmas card"
         (path "/b1ef8062-d0b2-45f0-be8f-ceb4fd46a2d8"
           (reference "R1") (unit 1)
+        )
+      )
+    )
+  )
+
+  (symbol (lib_id "power:GND") (at 59.69 194.31 0) (unit 1)
+    (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
+    (uuid 0396f992-6d72-46d7-98a6-7d0c6fb52f9d)
+    (property "Reference" "#PWR025" (at 59.69 200.66 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "GND" (at 59.69 199.39 0)
+      (effects (font (size 1.27 1.27)))
+    )
+    (property "Footprint" "" (at 59.69 194.31 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (at 59.69 194.31 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid 88355768-07f1-4030-ae33-3a80758f061a))
+    (instances
+      (project "DB-radar"
+        (path "/4fe367bb-912f-4df7-b060-07157080bb20"
+          (reference "#PWR025") (unit 1)
+        )
+      )
+      (project "fish clock"
+        (path "/8a39ddf7-266a-4e35-8762-e2f31a43cf6c"
+          (reference "#PWR0107") (unit 1)
         )
       )
     )
@@ -5533,6 +5571,7 @@
     (pin "1" (uuid ce5873cf-47cc-467d-93d6-ce0d7fe4b61f))
     (pin "2" (uuid 80ec0752-cb57-438c-b4bf-3178b938af17))
     (pin "3" (uuid 3626488a-8318-407a-a91d-159adbde7897))
+    (pin "S" (uuid 1ec0afa4-6b6b-4689-9549-3b24258be8d7))
     (instances
       (project "DB-radar"
         (path "/4fe367bb-912f-4df7-b060-07157080bb20"
