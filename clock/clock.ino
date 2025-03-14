@@ -92,7 +92,7 @@ void setup() {
 
 void loop() {
   setHour(houcounter);
-  setMinute(mincounter);
+  setMinute(mincounter*5);
 
   delay(100);
 
