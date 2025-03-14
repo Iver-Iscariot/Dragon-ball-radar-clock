@@ -1,80 +1,108 @@
 /*
-  Fade
-
-  This example shows how to fade an LED on pin 9 using the analogWrite()
-  function.
-
-  The analogWrite() function uses PWM, so if you want to change the pin you're
-  using, be sure to use another PWM capable pin. On most Arduino, the PWM pins
-  are identified with a "~" sign, like ~3, ~5, ~6, ~9, ~10 and ~11.
-
-  This example code is in the public domain.
-
-  https://www.arduino.cc/en/Tutorial/BuiltInExamples/Fade
+  Dragon-radar clock
+  Script written by Iver Iscariot Søbakk, for his custom PCB with an Atmega328 (open source at the github you found this file)
 */
 
-int PWM = 9;         // the PWM pin the LED is attached to
-int A = 14;         // the PWM pin the LED is attached to
-int B = 15;         // the PWM pin the LED is attached to
-int C = 16;         // the PWM pin the LED is attached to
-int D = 17;         // the PWM pin the LED is attached to
+int PWM = 9;        // the PWM pin the LED is attached to
+
+int A = 14;         // Hour cathode 1
+int B = 15;         // Hour cathode 2
+int C = 16;         // Hour anode 1
+int D = 17;         // Hour anode 2
+
+int E = 18;         // minute cathode 1
+int F = 19;         // minute cathode 2
+int G = 6 ;         // minute anode 1
+int H = 7 ;         // minute anode 2
+
 int brightness = 0;  // how bright the LED is
 int fadeAmount = 5;  // how many points to fade the LED by
 
-int smallcounter = 0;
-int bigcounter = 0;
+// Define the HOUR/MIN pin states to select the correct LED from the two "matrix"es (see schematic)
+const byte pinStates[12][4] = {
+    {0, 0, 1, 1}, // 1 -> 0011
+    {0, 0, 1, 0}, // 2 -> 0010
+    {0, 0, 0, 1}, // 3 -> 0001
+    {0, 0, 0, 0}, // 4 -> 0000
+    {0, 1, 1, 1}, // 5 -> 0111
+    {0, 1, 1, 0}, // 6 -> 0110
+    {0, 1, 0, 1}, // 7 -> 0101
+    {0, 1, 0, 0}, // 8 -> 0100
+    {1, 0, 1, 1}, // 9 -> 1011
+    {1, 0, 1, 0}, // 10 -> 1010
+    {1, 0, 0, 1}, // 11 -> 1001
+    {1, 0, 0, 0}  // 12 -> 1000
+};
 
+int mincounter = 1;
+int houcounter = 1;
+
+void setHour(int inputNumber) {    
+    if (inputNumber < 1 || inputNumber > 12) return; // Ensure valid range
+    
+    digitalWrite(A, pinStates[inputNumber - 1][0]);
+    digitalWrite(B, pinStates[inputNumber - 1][1]);
+    digitalWrite(C, pinStates[inputNumber - 1][2]);
+    digitalWrite(D, pinStates[inputNumber - 1][3]);
+}
+
+void setMinute(int inputNumber) {    
+    inputNumber = inputNumber/5 + 1; // divides to the nearest 5 minutes, rounding up, so yu have more time than you think 4 -> 0+1, lighting the "5 min" led
+    if (inputNumber < 1 || inputNumber > 12) return; // Ensure valid range
+    
+    digitalWrite(E, pinStates[inputNumber - 1][0]);
+    digitalWrite(F, pinStates[inputNumber - 1][1]);
+    digitalWrite(G, pinStates[inputNumber - 1][2]);
+    digitalWrite(H, pinStates[inputNumber - 1][3]);
+}
 
 
 // the setup routine runs once when you press reset:
 void setup() {
   pinMode(PWM, OUTPUT);
+  
   pinMode(A, OUTPUT);
   pinMode(B, OUTPUT);
   pinMode(C, OUTPUT);
   pinMode(D, OUTPUT);
 
+  pinMode(E, OUTPUT);
+  pinMode(F, OUTPUT);
+  pinMode(G, OUTPUT);
+  pinMode(H, OUTPUT);
+
   
-  digitalWrite(A, HIGH);  // turn the LED on (HIGH is the voltage level)
+  digitalWrite(A, LOW);  // turn the LED on (HIGH is the voltage level)
   digitalWrite(B, LOW);  // turn the LED on (HIGH is the voltage level)
-  digitalWrite(C, HIGH);  // turn the LED on (HIGH is the voltage level)
+  digitalWrite(C, LOW);  // turn the LED on (HIGH is the voltage level)
   digitalWrite(D, LOW);  // turn the LED on (HIGH is the voltage level)
+
+  digitalWrite(E, LOW);  // turn the LED on (HIGH is the voltage level)
+  digitalWrite(F, LOW);  // turn the LED on (HIGH is the voltage level)
+  digitalWrite(G, LOW);  // turn the LED on (HIGH is the voltage level)
+  digitalWrite(H, LOW);  // turn the LED on (HIGH is the voltage level)
+
+  // just for circle example
+  analogWrite(PWM, 127);   // half brightness
+
 
   Serial.begin(9600);
 }
 
-// the loop routine runs over and over again forever:
+
 void loop() {
-  // set the brightness of pin 9:
-  analogWrite(PWM, brightness);
+  setHour(houcounter);
+  setMinute(mincounter);
 
-  // change the brightness for next time through the loop:
-  brightness = brightness + fadeAmount;
+  delay(100);
 
-  // reverse the direction of the fading at the ends of the fade:
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
+  mincounter += 1;
+  if (mincounter == 13){  // if all the way round
+    mincounter = 1;      // start over
+    houcounter += 1;     // increment hour
   }
-  // wait for 30 milliseconds to see the dimming effect
-  delay(30);
-  smallcounter += 1;
-
-
-  if (smallcounter%100 == 0){
-    Serial.print("swag");
-    digitalWrite(B, !digitalRead(B)); // toggle LSB
-    if (digitalRead(B) == LOW){         // Hvis B ble endret til 0
-      digitalWrite(A, !digitalRead(A)); // endre A også
-    }
-    bigcounter += 1;
-
-    if (bigcounter == 3){
-      digitalWrite(D, !digitalRead(D)); // toggle LSB
-      if (digitalRead(D) == LOW){         // Hvis B ble endret til 0
-        digitalWrite(C, !digitalRead(C)); // endre A også
-      }
-      bigcounter = 0;
-    }
+  if (houcounter == 13){  // iff all the way round
+    houcounter = 1;       //start over
   }
 
 }
