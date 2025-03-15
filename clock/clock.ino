@@ -3,9 +3,12 @@
   Script written by Iver Iscariot Søbakk, for his custom PCB with an Atmega328 (open source at the github you found this file)
 */
 #include <TimeLib.h>
+#include <LowPower.h>
 
 
-int PWM = 9;        // the PWM pin the LED is attached to
+#define BUTTON_PIN 3  // Pin for the button
+
+int PWM = 9;             // the PWM pin the transistors are attached to
 
 int A = 14; int B = 15;  // Minute cathode 
 int C = 16; int D = 17;  // Minute anode 
@@ -13,8 +16,18 @@ int C = 16; int D = 17;  // Minute anode
 int E = 18; int F = 19;  // Hour cathode 
 int G = 6 ; int H = 7 ;  // Hour anode
 
-int brightness = 0;  // Current brightness
-int fadeAmount = 5;  // Fading increase amount (fadespeed)
+// --- Time-showing-pulses
+int maxBright = 60;  // Maximum Brightness
+float period = 0.5;       // Period of fade (in seconds)
+int n = 3;            // Number of pulses
+
+
+
+
+volatile bool wakeUpFlag = false;  // Flag to indicate button press
+
+
+
 
 // Define the HOUR/MIN pin states to select the correct LED from the two "matrix"es (see schematic)
 const byte pinStatesH[12][4] = {
@@ -49,6 +62,8 @@ const byte pinStates[12][4] = {
 int mincounter = 0;
 int houcounter = 1;
 
+
+// --------------------------- Functions to be called -----------------------------------
 void setMinute(int inputNumber) {    
     inputNumber = inputNumber/5 + 1; // divides to the nearest 5 minutes, rounding up, so yu have more time than you think 4 -> 0+1, lighting the "5 min" led
     if (inputNumber < 1 || inputNumber > 12) return; // Ensure valid range
@@ -68,10 +83,50 @@ void setHour(int inputNumber) {
     digitalWrite(H, pinStatesH[inputNumber - 1][0]);
 }
 
+void resetClock(){
+  // Set time to 12:00:00
+  setTime(12, 0, 0, 1, 1, 2025); // setTime(hr, min, sec, day, month, year)
+}
 
-// the setup routine runs once when you press reset:
+void showTime(){
+  Serial.println("Showing time");
+  unsigned long t0 = millis();
+  while (millis() - t0 < n*period*1000){
+    analogWrite(PWM, maxBright*0.5*(         cos(    2*PI*( millis()-t0 )/( 1000*period )    + PI)   + 1       )  ); 
+    delay(5);  // if you want realy fast pulses for some reason, you might want to reduce this
+  }
+  analogWrite(PWM, 0);
+
+}
+
+void wakeUp() {
+    delay(50);  // Simple debounce
+    detachInterrupt(digitalPinToInterrupt(BUTTON_PIN));  // Prevent multiple triggers
+    wakeUpFlag = true;  // Set flag when button is pressed
+}
+void goToSleep() {
+    Serial.println("EEPY!!");
+    wakeUpFlag = false;  // Reset flag before sleep
+
+    // Attach interrupt on FALLING edge (button press)
+    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), wakeUp, FALLING);
+
+    // Ensure no immediate wake-up from noise
+    delay(10);
+
+    // Enter idle mode (timers keep running)
+    LowPower.idle(SLEEP_FOREVER, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_ON, SPI_OFF, USART0_OFF, TWI_OFF);
+
+    // Wakes up here when button is pressed
+    detachInterrupt(digitalPinToInterrupt(BUTTON_PIN));  // Remove interrupt after wake-up
+}
+
+
+
+// ------------------------------------ Setup ---------------------------------------------
 void setup() {
   pinMode(PWM, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT);
   
   pinMode(A, OUTPUT); pinMode(B, OUTPUT); pinMode(C, OUTPUT); pinMode(D, OUTPUT);
   pinMode(E, OUTPUT); pinMode(F, OUTPUT); pinMode(G, OUTPUT); pinMode(H, OUTPUT);
@@ -88,22 +143,23 @@ void setup() {
 
 
   hourFormat12(); 
+  delay(500);
+  resetClock();
 }
 
-
+// ---------------------------------------- Loop ----------------------------------------------
 void loop() {
-  setHour(houcounter);
-  setMinute(mincounter);
+  setHour(hour());      // Set the pins for the LED matrix
+  setMinute(minute());
+  showTime();           // Flash the PWM pin to reveal the set LED pins
 
-  delay(50);
+  delay(3000);
 
-  mincounter += 1;
-  if (mincounter == 60){  // if all the way round
-    mincounter = 0;      // start over
-    houcounter += 1;     // increment hour
-  }
-  if (houcounter == 13){  // iff all the way round
-    houcounter = 1;       //start over
+  goToSleep();  // Call function to enter idle mode
+
+  if (wakeUpFlag) {
+      Serial.println("Woken up by button press!");
+      delay(300);  // Avoid immediate re-triggering due to bouncing
   }
 
 }
