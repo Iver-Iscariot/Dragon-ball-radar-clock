@@ -10,3 +10,10 @@ To work with the one-button interface of the original, I will set it such that a
 VERY organized scematic:
 
 ![image](https://github.com/user-attachments/assets/83958388-5268-49c8-95af-034e015e63ec)
+
+
+TODO for next PCB itteration:
+ - Mosfet poweroff for 4052 multiplexer (power-saving)
+ - Perhaps figure out more efficient way of driving the matrix
+ - Consider using dedicated RTC, to allow MCU sleep
+ - Attempt to move LED rings closer to center
