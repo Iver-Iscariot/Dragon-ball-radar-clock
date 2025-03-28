@@ -17,16 +17,15 @@ int E = 18; int F = 19;  // Hour cathode
 int G = 6 ; int H = 7 ;  // Hour anode
 
 // --- Time-showing-pulses
-int maxBright = 60;  // Maximum Brightness
+int maxBright = 127;  // Maximum Brightness
 float period = 0.5;       // Period of fade (in seconds)
 int n = 3;            // Number of pulses
 
-
-
-
-volatile bool wakeUpFlag = false;  // Flag to indicate button press
-
-
+// bools and timers for long/short buttonpress functionality
+bool buttonActive = false;
+bool longPressActive = false;
+unsigned long buttonTimer = 0;
+unsigned long longPressTime = 3000;
 
 
 // Define the HOUR/MIN pin states to select the correct LED from the two "matrix"es (see schematic)
@@ -59,9 +58,6 @@ const byte pinStates[12][4] = {
     {0, 1, 0, 0} // 12 -> 0100
 };
 
-int mincounter = 0;
-int houcounter = 1;
-
 
 // --------------------------- Functions to be called -----------------------------------
 void setMinute(int inputNumber) {    
@@ -90,7 +86,10 @@ void resetClock(){
 
 void showTime(){
   Serial.println("Showing time");
+  setHour(hour());      // Set the pins for the LED matrix
+  setMinute(minute());
   unsigned long t0 = millis();
+  // PWM a sine on the pwm pin for the set amunt of periods
   while (millis() - t0 < n*period*1000){
     analogWrite(PWM, maxBright*0.5*(         cos(    2*PI*( millis()-t0 )/( 1000*period )    + PI)   + 1       )  ); 
     delay(5);  // if you want realy fast pulses for some reason, you might want to reduce this
@@ -98,29 +97,6 @@ void showTime(){
   analogWrite(PWM, 0);
 
 }
-
-void wakeUp() {
-    delay(50);  // Simple debounce
-    detachInterrupt(digitalPinToInterrupt(BUTTON_PIN));  // Prevent multiple triggers
-    wakeUpFlag = true;  // Set flag when button is pressed
-}
-void goToSleep() {
-    Serial.println("EEPY!!");
-    wakeUpFlag = false;  // Reset flag before sleep
-
-    // Attach interrupt on FALLING edge (button press)
-    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), wakeUp, FALLING);
-
-    // Ensure no immediate wake-up from noise
-    delay(10);
-
-    // Enter idle mode (timers keep running)
-    LowPower.idle(SLEEP_FOREVER, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_ON, SPI_OFF, USART0_OFF, TWI_OFF);
-
-    // Wakes up here when button is pressed
-    detachInterrupt(digitalPinToInterrupt(BUTTON_PIN));  // Remove interrupt after wake-up
-}
-
 
 
 // ------------------------------------ Setup ---------------------------------------------
@@ -135,31 +111,56 @@ void setup() {
   digitalWrite(A, LOW);  digitalWrite(B, LOW);  digitalWrite(C, LOW);  digitalWrite(D, LOW);  
   digitalWrite(E, LOW);  digitalWrite(F, LOW);  digitalWrite(G, LOW);  digitalWrite(H, LOW);  
 
-  // just for circle example
-  analogWrite(PWM, 4);   // half brightness
-
-
   Serial.begin(9600);
 
 
   hourFormat12(); 
-  delay(500);
+  delay(250);
   resetClock();
+  delay(250);
+  setHour(hour());      // Set the pins for the LED matrix
+  setMinute(minute());
+  delay(250);
+  showTime();
+  delay(250);
 }
 
 // ---------------------------------------- Loop ----------------------------------------------
 void loop() {
-  setHour(hour());      // Set the pins for the LED matrix
-  setMinute(minute());
-  showTime();           // Flash the PWM pin to reveal the set LED pins
 
-  delay(3000);
+	if (digitalRead(BUTTON_PIN) == LOW) {  // the button is active low / pulled high
 
-  goToSleep();  // Call function to enter idle mode
+		if (buttonActive == false) {
 
-  if (wakeUpFlag) {
-      Serial.println("Woken up by button press!");
-      delay(300);  // Avoid immediate re-triggering due to bouncing
-  }
+			buttonActive = true;
+			buttonTimer = millis();
+		}
 
+		if ((millis() - buttonTimer > longPressTime) && (longPressActive == false)  ) {
+      if (digitalRead(BUTTON_PIN) == HIGH) {
+        longPressActive = true;
+        resetClock();
+        showTime();
+      }
+		}
+
+	} else {
+
+		if (buttonActive == true) {
+
+			if (longPressActive == true) {
+
+				longPressActive = false;
+
+			} else {
+
+				showTime();
+
+			}
+
+			buttonActive = false;
+
+		}
+
+	}
 }
